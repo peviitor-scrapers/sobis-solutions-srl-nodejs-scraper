@@ -6,7 +6,7 @@
  *   keywords (catches soft-404s where status is 200 but the job is gone).
  *
  * Used by:
- *   - tests/validate-epam-jobs.js (CI nightly cleanup) — uses validateByHead
+ *   - tests/validate-sobis-solutions-jobs.js (CI nightly cleanup) — uses validateByHead
  *   - validate-jobs.js (manual deep checks)            — uses validateByContent
  */
 
@@ -23,7 +23,7 @@ export const DEFAULT_EXPIRED_KEYWORDS = [
 ];
 
 const DEFAULT_USER_AGENT = "job_seeker_ro_spider";
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
  * HEAD-only validator. Returns the URL active if status is 2xx/3xx, expired

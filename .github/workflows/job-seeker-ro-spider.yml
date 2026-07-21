@@ -32,9 +32,10 @@ jobs:
         run: |
           CIF=$(jq -r '.cif' config/company.json)
           LEGAL_NAME=$(jq -r '.legalName' config/company.json)
+          GROUP=$(jq -r '.group // ""' config/company.json)
           BRAND=$(jq -r '.brand' config/company.json)
           WEBSITE=$(jq -r '.website' config/company.json)
-          CAREER=$(jq -r '.careerUrl' config/company.json)
+          CAREER=$(jq -r '.careerUrl // ""' config/company.json)
           DEFAULT_LOC=$(jq -r '.defaultLocation' config/company.json)
           SCRAPER_FILE=$(jq -r '.scraperFile' config/company.json)
           TODAY=$(date -u +%Y-%m-%d)
@@ -43,13 +44,14 @@ jobs:
           jq -n \
             --arg id "$CIF" \
             --arg company "$LEGAL_NAME" \
+            --arg group "$GROUP" \
             --arg brand "$BRAND" \
             --arg website "$WEBSITE" \
             --arg career "$CAREER" \
             --arg loc "$DEFAULT_LOC" \
             --arg today "$TODAY" \
             --arg scraperFile "$SCRAPER_FILE" \
-            '[{id:$id,company:$company,brand:$brand,status:"activ",location:[$loc],website:[$website],career:[$career],lastScraped:$today,scraperFile:$scraperFile}]' \
+            '[{id:$id,company:$company,group:$group,brand:$brand,status:"activ",location:[$loc],website:[$website],career:[$career],lastScraped:$today,scraperFile:$scraperFile}]' \
             > company_data.json
 
           curl -s --user "${SOLR_AUTH}" \
@@ -73,7 +75,7 @@ jobs:
       - name: Pre-scrape — Unit Tests
         run: |
           npm run test:unit
-          sed -i 's|<title>Test Report</title>|<title>Pre-scrape: Unit Tests — EPAM SYSTEMS INTERNATIONAL SRL</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Pre-scrape: Unit Tests — EPAM SYSTEMS INTERNATIONAL SRL</h1>|' test-report.html
+          sed -i 's|<title>Test Report</title>|<title>Pre-scrape: Unit Tests — SOBIS SOLUTIONS S.R.L.</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Pre-scrape: Unit Tests — SOBIS SOLUTIONS S.R.L.</h1>|' test-report.html
           cp test-report.html docs/test-results/pre-scrape-unit.html || true
         env:
           SOLR_AUTH: ${{ secrets.SOLR_AUTH }}
@@ -81,7 +83,7 @@ jobs:
       - name: Pre-scrape — Integration Tests
         run: |
           npm run test:integration
-          sed -i 's|<title>Test Report</title>|<title>Pre-scrape: Integration Tests — EPAM SYSTEMS INTERNATIONAL SRL</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Pre-scrape: Integration Tests — EPAM SYSTEMS INTERNATIONAL SRL</h1>|' test-report.html
+          sed -i 's|<title>Test Report</title>|<title>Pre-scrape: Integration Tests — SOBIS SOLUTIONS S.R.L.</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Pre-scrape: Integration Tests — SOBIS SOLUTIONS S.R.L.</h1>|' test-report.html
           cp test-report.html docs/test-results/pre-scrape-integration.html || true
         env:
           SOLR_AUTH: ${{ secrets.SOLR_AUTH }}
@@ -103,7 +105,7 @@ jobs:
       - name: Post-scrape — E2E Tests
         run: |
           npm run test:e2e
-          sed -i 's|<title>Test Report</title>|<title>Post-scrape: E2E Tests — EPAM SYSTEMS INTERNATIONAL SRL</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Post-scrape: E2E Tests — EPAM SYSTEMS INTERNATIONAL SRL</h1>|' test-report.html
+          sed -i 's|<title>Test Report</title>|<title>Post-scrape: E2E Tests — SOBIS SOLUTIONS S.R.L.</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Post-scrape: E2E Tests — SOBIS SOLUTIONS S.R.L.</h1>|' test-report.html
           cp test-report.html docs/test-results/post-scrape.html || true
         env:
           SOLR_AUTH: ${{ secrets.SOLR_AUTH }}
@@ -111,7 +113,7 @@ jobs:
       - name: Consistency Tests
         run: |
           npm run test:consistency
-          sed -i 's|<title>Test Report</title>|<title>Post-scrape: Consistency Tests — EPAM SYSTEMS INTERNATIONAL SRL</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Post-scrape: Consistency Tests — EPAM SYSTEMS INTERNATIONAL SRL</h1>|' test-report.html
+          sed -i 's|<title>Test Report</title>|<title>Post-scrape: Consistency Tests — SOBIS SOLUTIONS S.R.L.</title>|;s|<h1 id="title">Test Report</h1>|<h1 id="title">Post-scrape: Consistency Tests — SOBIS SOLUTIONS S.R.L.</h1>|' test-report.html
           cp test-report.html docs/test-results/post-scrape-consistency.html || true
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}

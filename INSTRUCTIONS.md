@@ -2,9 +2,9 @@
 
 ## Project Purpose
 
-This scraper extracts job listings from EPAM careers page (Romania only) and imports them to peviitor.ro.
+This scraper extracts job listings from SOBIS SOLUTIONS S.R.L. via the ANOFM public API and imports them to peviitor.ro.
 
-Target: https://careers.epam.com/en/jobs/romania
+Target: ANOFM public API (`/api/entity/vw_public_job_posting`) filtered by CIF 12018818
 
 ## Model Schemas
 
@@ -39,18 +39,18 @@ When working on this scraper:
 
 - **Node.js & JavaScript** - For scraping and data extraction
 - **Apache SOLR** - For data storage and indexing
-- **Claude Code** - For development
+- **opencode** - For development
 
 ## Workflow Steps
 
-1. **Start with brand** - We know the brand (e.g., "EPAM")
+1. **Start with brand** - We know the brand (e.g., "SOBIS")
 2. **Search in DemoANAF** - Find company by brand, get CIF from search results
 3. **Get company details from ANAF** - Using CIF, fetch full company data from ANAF
 4. **Validate with Peviitor** - Verify company exists in Peviitor, get group/brand info
 5. **Check existing jobs in SOLR** - Query SOLR by CIF to see what jobs already exist
 6. **Check company status** - If ANAF status = "inactive" → DELETE existing jobs from SOLR and STOP
 7. **Save company.json** - Save all ANAF + Peviitor data for backup
-8. **Scrape new jobs** - Extract jobs from EPAM careers page (Romania)
+8. **Scrape new jobs** - Query ANOFM API filtered by CIF
 9. **Transform for SOLR** - Validate and fix job data:
    - location: Only Romanian cities allowed
    - tags: lowercase, no diacritics
@@ -71,7 +71,7 @@ node index.js
 node index.js --test
 ```
 
-> **Important**: Scraper does NOT delete jobs from other sources (ANOFM, etc). It only upserts EPAM Careers jobs. Existing jobs are preserved.
+> **Important**: Scraper does NOT delete jobs from other sources. It only upserts SOBIS SOLUTIONS jobs from ANOFM. Existing jobs are preserved.
 
 ## Full Workflow (automatic)
 
@@ -79,12 +79,12 @@ When running `node index.js`, the following steps happen automatically:
 
 1. **Check existing jobs count** - Query SOLR by CIF (read-only)
 2. **Validate company via ANAF** - Check company exists and is active
-3. **Scrape jobs** - Extract jobs from EPAM careers API (Romania only)
+3. **Scrape jobs** - Query ANOFM API filtered by CIF
 4. **Transform for SOLR** - Fix locations (only Romanian cities), normalize fields
 5. **Upsert to SOLR** - Add/update jobs (SOLR handles duplicates by URL)
 6. **Show Summary** - Log job counts
 
-**Important**: We do NOT delete existing jobs! This preserves jobs from other sources (ANOFM, etc).
+**Important**: We do NOT delete existing jobs! This preserves jobs from other sources.
 
 ## Workflow Flowchart
 
@@ -106,7 +106,7 @@ company.js (validate company)
     └── SOLR ──► check existing jobs count
     │
     ▼ (if active)
-scrape EPAM API (jobs for Romania)
+query ANOFM API (jobs for CIF)
     │
     ▼
 transformJobsForSOLR()
@@ -137,13 +137,13 @@ generateJobsMarkdown() → docs/jobs.md
 | `src/markdown-generator.js` | Generates `docs/jobs.md` with company info and all scraped jobs |
 | `src/job-validator.js` | Shared validation primitives: `validateByHead`, `validateByContent`, `DEFAULT_EXPIRED_KEYWORDS` |
 | `demoanaf.js` | CLI entry point for ANAF module (thin wrapper around src/anaf.js) |
-| `tests/validate-epam-jobs.js` | CI fast validator (HEAD only); thin CLI over `src/job-validator.js` + `solr.js` |
-| `tests/unit/index.test.js` | Unit tests for parseApiJobs, mapToJobModel, transformJobsForSOLR |
+| `tests/validate-sobis-solutions-jobs.js` | CI fast validator (HEAD only); thin CLI over `src/job-validator.js` + `solr.js` |
+| `tests/unit/index.test.js` | Unit tests for parseAnofmJobs, mapToJobModel, transformJobsForSOLR |
 | `tests/unit/company.test.js` | Unit tests for validateAndGetCompany and fallback caching |
 | `tests/unit/solr.test.js` | Unit tests for SOLR query, upsert, delete operations |
 | `tests/unit/demoanaf.test.js` | Unit tests for ANAF search and company retrieval |
 | `tests/integration/workflow.test.js` | Live integration tests - ANAF + SOLR |
-| `tests/e2e/scraper.test.js` | End-to-end tests with real EPAM API |
+| `tests/e2e/scraper.test.js` | End-to-end tests with real ANOFM API |
 | `tests/consistency/public.test.js` | Verifies repo is public on GitHub |
 | `tests/consistency/repo.test.js` | Verifies branch, Pages, secrets, workflow files |
 | `tests/consistency/topics.test.js` | Verifies required repo topics |
@@ -151,6 +151,7 @@ generateJobsMarkdown() → docs/jobs.md
 
 ## API Endpoints
 
+- **ANOFM API**: `https://anofm.ro/api/entity/vw_public_job_posting` - Public job postings filtered by CIF
 - **DemoANAF Search**: `https://demoanaf.ro/api/search?q=BRAND` - Search companies by name/brand
 - **DemoANAF Company**: `https://demoanaf.ro/api/company/:cui` - Get company details by CIF
 - **Peviitor API**: `https://api.peviitor.ro/v1/company/`
@@ -163,8 +164,6 @@ The scraper is intentionally slow to be a good citizen:
 | Setting | Value | Where |
 |---------|-------|-------|
 | Delay between pages | 1000 ms | `index.js` — `sleep(1000)` in `scrapeAllListings()` |
-| Page size | 10 jobs | `index.js` — `PAGE_SIZE` constant |
-| Max pages | 10 | `index.js` — `MAX_PAGES` in `scrapeAllListings()` |
 | Request timeout | 10000 ms | `index.js` — `TIMEOUT` constant |
 | ANAF retries | 3 attempts, 2s exponential backoff | `src/anaf.js` |
 | Concurrency | 1 (sequential) | No `Promise.all` for paginated fetches |
@@ -233,4 +232,4 @@ All temporary/scratch files must be placed in `tmp/` inside the project root (ne
 - [x] Write Unit Tests for all modules (#3)
 - [x] Write Integration Tests in separate folder (#4)
 - [x] Write E2E automated tests in separate folder (#5)
-- [ ] Write Unit/Component/E2E tests for index.js
+- [x] Write Unit/Component/E2E tests for index.js

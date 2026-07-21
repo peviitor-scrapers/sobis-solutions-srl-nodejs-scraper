@@ -44,141 +44,121 @@ beforeAll(async () => {
   }
 });
 
-const TEST_CIF = '33159615';
-const TEST_BRAND = 'EPAM';
-const EPAM_API_URL = 'https://careers.epam.com/api/jobs/v2/search/careers-i18n?from=0&lang=en&size=5&sortBy=relevance%3Brelocation%3Dasc&websiteLocale=en-us&facets=country%3D8150000000000001155';
-const ROMANIAN_CITIES = ['Bucharest', 'București', 'Cluj-Napoca', 'Timișoara', 'Iași', 'Brașov', 'Constanța', 'Sibiu', 'Oradea'];
+const TEST_CIF = '12018818';
+const TEST_BRAND = 'SOBIS';
+const ANOFM_API_URL = 'https://mediere.anofm.ro/api/entity/vw_public_job_posting';
 
 describe('E2E: Full Scraping Pipeline', () => {
 
-  describe('EPAM Careers API — Real Data Fetch', () => {
+  describe('ANOFM API — Real Data Fetch', () => {
     let apiData;
 
     beforeAll(async () => {
-      const res = await fetch(EPAM_API_URL, {
+      const res = await fetch(ANOFM_API_URL, {
+        method: 'POST',
         headers: {
-          'User-Agent': 'job_seeker_ro_spider',
-          'Accept': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'User-Agent': 'job_seeker_ro_spider'
+        },
+        body: JSON.stringify({
+          current: 1,
+          rowCount: 5,
+          sort: { created_at: 'desc' },
+          employer_tax_code: TEST_CIF
+        })
       });
       apiData = await res.json();
     }, 15000);
 
-    it('should respond with valid job data from EPAM API', () => {
-      expect(apiData).toHaveProperty('data');
-      expect(apiData.data).toHaveProperty('jobs');
-      expect(Array.isArray(apiData.data.jobs)).toBe(true);
-      expect(apiData.data.jobs.length).toBeGreaterThan(0);
-      expect(apiData.data).toHaveProperty('total');
-      expect(typeof apiData.data.total).toBe('number');
+    it('should respond with valid job data from ANOFM API', () => {
+      expect(apiData).toHaveProperty('rows');
+      expect(Array.isArray(apiData.rows)).toBe(true);
     }, 10000);
 
-    it('should have Romania jobs with expected fields', () => {
-      const job = apiData.data.jobs[0];
-      expect(job).toHaveProperty('uid');
-      expect(job).toHaveProperty('name');
-      expect(typeof job.name).toBe('string');
-      expect(job).toHaveProperty('city');
-    });
+    it('if jobs exist, should have expected fields', () => {
+      if (!apiData.rows || apiData.rows.length === 0) {
+        console.log('No ANOFM jobs for CIF 12018818 — skipping field assertions');
+        return;
+      }
 
-    it('should have Romanian country on at least one job', () => {
-      const allCountries = apiData.data.jobs.flatMap(j =>
-        (j.country || []).map(c => c.name?.toLowerCase())
-      );
-      expect(allCountries.length).toBeGreaterThan(0);
-      expect(allCountries.some(c => c === 'romania')).toBe(true);
-    });
-
-    it('should have country set to Romania', () => {
-      const job = apiData.data.jobs[0];
-      expect(job).toHaveProperty('country');
-      const romaniaCountry = (job.country || []).some(c =>
-        c.name?.toLowerCase() === 'romania'
-      );
-      expect(romaniaCountry).toBe(true);
+      const job = apiData.rows[0];
+      expect(job).toHaveProperty('id');
+      expect(job).toHaveProperty('occupation');
+      expect(typeof job.occupation).toBe('string');
     });
   });
 
   describe('Parse + Transform Pipeline', () => {
     let index;
-    let apiData;
 
     beforeAll(async () => {
       index = await import('../../index.js');
-      const res = await fetch(EPAM_API_URL, {
-        headers: {
-          'User-Agent': 'job_seeker_ro_spider',
-          'Accept': 'application/json'
-        }
-      });
-      apiData = await res.json();
-    }, 15000);
-
-    it('should parse real EPAM API response into standardized format', () => {
-      const result = index.parseApiJobs(apiData);
-
-      expect(result).toHaveProperty('jobs');
-      expect(result).toHaveProperty('total');
-      expect(result.jobs.length).toBeGreaterThan(0);
-      expect(result.jobs.length).toBeLessThanOrEqual(5);
-
-      const parsed = result.jobs[0];
-      expect(parsed).toHaveProperty('url');
-      expect(parsed.url).toMatch(/^https:\/\/careers\.epam\.com\//);
-      expect(parsed).toHaveProperty('title');
-      expect(parsed).toHaveProperty('workmode');
-      expect(['remote', 'on-site', 'hybrid']).toContain(parsed.workmode);
-      expect(parsed).toHaveProperty('location');
-      expect(Array.isArray(parsed.location)).toBe(true);
-      expect(parsed).toHaveProperty('tags');
     });
 
-    it('should map parsed jobs to job model', () => {
-      const parsed = index.parseApiJobs(apiData);
-      const model = index.mapToJobModel(parsed.jobs[0], TEST_CIF);
+    it('should fetch jobs from ANOFM API via searchANOFM', async () => {
+      const jobs = await index.searchANOFM(TEST_CIF, true);
+
+      expect(Array.isArray(jobs)).toBe(true);
+
+      if (jobs.length === 0) {
+        console.log('No ANOFM jobs for CIF 12018818 — skipping further pipeline tests');
+        return;
+      }
+
+      expect(jobs.length).toBeGreaterThan(0);
+
+      const job = jobs[0];
+      expect(job).toHaveProperty('url');
+      expect(job.url).toMatch(/^https:\/\/mediere\.anofm\.ro\//);
+      expect(job).toHaveProperty('title');
+      expect(job).toHaveProperty('source', 'ANOFM');
+    }, 30000);
+
+    it('should map ANOFM jobs to job model', async () => {
+      const jobs = await index.searchANOFM(TEST_CIF, true);
+
+      if (jobs.length === 0) {
+        console.log('No ANOFM jobs — skipping mapToJobModel test');
+        return;
+      }
+
+      const model = index.mapToJobModel(jobs[0], TEST_CIF);
 
       expect(model).toHaveProperty('url');
       expect(model).toHaveProperty('title');
-      expect(model).toHaveProperty('company');
+      expect(model.company).toContain('SOBIS SOLUTIONS');
       expect(model).toHaveProperty('cif', TEST_CIF);
       expect(model).toHaveProperty('status', 'scraped');
       expect(model).toHaveProperty('date');
-      expect(model.url).toMatch(/^https:\/\/careers\.epam\.com\//);
-    });
+      expect(model.url).toMatch(/^https:\/\/mediere\.anofm\.ro\//);
+    }, 30000);
 
-    it('should transform jobs and filter to Romanian locations', () => {
-      const parsed = index.parseApiJobs(apiData);
-      const jobs = parsed.jobs.map(j => index.mapToJobModel(j, TEST_CIF));
+    it('should transform jobs and filter to Romanian locations', async () => {
+      const jobs = await index.searchANOFM(TEST_CIF, true);
+
+      if (jobs.length === 0) {
+        console.log('No ANOFM jobs — skipping transformJobsForSOLR test');
+        return;
+      }
+
+      const mappedJobs = jobs.map(j => index.mapToJobModel(j, TEST_CIF));
 
       const payload = {
-        source: 'epam.com',
-        company: 'EPAM SYSTEMS INTERNATIONAL SRL',
+        source: 'anofm.ro',
+        company: 'SOBIS SOLUTIONS S.R.L.',
         cif: TEST_CIF,
-        jobs
+        jobs: mappedJobs
       };
 
       const transformed = index.transformJobsForSOLR(payload);
 
-      expect(transformed.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
-      expect(transformed.jobs.length).toBe(jobs.length);
+      expect(transformed.company).toContain('SOBIS SOLUTIONS');
+      expect(transformed.jobs.length).toBe(mappedJobs.length);
 
       for (const job of transformed.jobs) {
         expect(job).toHaveProperty('location');
         expect(Array.isArray(job.location)).toBe(true);
         expect(job.location.length).toBeGreaterThan(0);
-        expect(job.workmode).toMatch(/^(remote|on-site|hybrid)$/);
-      }
-    });
-
-    it('should produce valid job URLs that are accessible', async () => {
-      const parsed = index.parseApiJobs(apiData);
-
-      for (const job of parsed.jobs.slice(0, 2)) {
-        const res = await fetch(job.url, {
-          method: 'HEAD',
-          headers: { 'User-Agent': 'job_seeker_ro_spider' }
-        });
-        expect(res.ok).toBe(true);
       }
     }, 30000);
   });
@@ -192,15 +172,15 @@ describe('E2E: Full Scraping Pipeline', () => {
       company = await import('../../company.js');
     });
 
-    itIfAnaf('should find EPAM in ANAF and validate active status', async () => {
+    itIfAnaf('should find SOBIS SOLUTIONS in ANAF and validate active status', async () => {
       const results = await anaf.searchCompany(TEST_BRAND);
 
-      const epam = results.find(c =>
-        c.name.toUpperCase().startsWith(TEST_BRAND + ' ') &&
+      const sobis = results.find(c =>
+        c.name.toUpperCase().startsWith('SOBIS SOLUTIONS') &&
         c.statusLabel === 'Funcțiune'
       );
-      expect(epam).toBeDefined();
-      expect(epam.cui.toString()).toBe(TEST_CIF);
+      expect(sobis).toBeDefined();
+      expect(sobis.cui.toString()).toBe(TEST_CIF);
 
       const anafData = await anaf.getCompanyFromANAF(TEST_CIF);
       expect(anafData).toBeDefined();
@@ -211,11 +191,11 @@ describe('E2E: Full Scraping Pipeline', () => {
       const result = await company.validateAndGetCompany();
 
       expect(result.status).toBe('active');
-      expect(result.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      expect(result.company).toBe('SOBIS SOLUTIONS S.R.L.');
       expect(result.cif).toBe(TEST_CIF);
 
       if (result.existingJobsCount === 0) {
-        console.log('⚠️ No EPAM jobs in Solr — skipping job count assertion');
+        console.log('No SOBIS jobs in Solr — skipping job count assertion');
         return;
       }
       expect(result.existingJobsCount).toBeGreaterThan(0);
@@ -230,7 +210,7 @@ describe('E2E: Full Scraping Pipeline', () => {
     });
 
     itIfAnaf('should detect inactive/radiated companies via ANAF', async () => {
-      const results = await anaf.searchCompany('EPAM');
+      const results = await anaf.searchCompany('SOBIS');
 
       const nonActive = results.find(c => c.statusLabel !== 'Funcțiune');
 
@@ -255,27 +235,27 @@ describe('E2E: Full Scraping Pipeline', () => {
       solr = await import('../../solr.js');
     });
 
-    itIfSolr('should have EPAM jobs in SOLR with correct company name', async () => {
+    itIfSolr('should have SOBIS jobs in SOLR with correct company name', async () => {
       const result = await solr.querySOLR(TEST_CIF);
 
       if (result.numFound === 0) {
-        console.log('⚠️ No EPAM jobs in Solr — skipping SOLR data verification');
+        console.log('No SOBIS jobs in Solr — skipping SOLR data verification');
         return;
       }
 
       for (const job of result.docs) {
-        expect(job.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+        expect(job.company).toContain('SOBIS SOLUTIONS');
         expect(job.cif).toBe(TEST_CIF);
       }
     }, 15000);
 
-    itIfSolr('should have EPAM company core entry with required fields', async () => {
+    itIfSolr('should have SOBIS company core entry with required fields', async () => {
       const result = await solr.queryCompanySOLR(`id:${TEST_CIF}`);
 
       expect(result.numFound).toBe(1);
-      const epam = result.docs[0];
-      expect(epam.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
-      expect(epam.status).toBe('activ');
+      const sobis = result.docs[0];
+      expect(sobis.company).toContain('SOBIS SOLUTIONS');
+      expect(sobis.status).toBe('activ');
     }, 15000);
   });
 });

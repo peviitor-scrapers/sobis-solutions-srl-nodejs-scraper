@@ -38,10 +38,10 @@ Pentru fiecare workflow din `.github/workflows/`:
 4. Verifică în SOLR că job-urile companiei apar:
    ```bash
    # CIF-ul companiei
-   curl --user "${SOLR_AUTH}" "https://solr.peviitor.ro/solr/job/select?q=cif:CIF&rows=10"
+   curl --user "${SOLR_AUTH}" "https://solr.peviitor.ro/solr/job/select?q=cif:12018818&rows=10"
    ```
 5. Verifică că `docs/jobs.md` a fost generat și este accesibil:
-   - https://sebiboga.github.io/epam-systems-international-srl-nodejs-scraper/jobs.md
+   - https://sebiboga.github.io/sobis-solutions-srl-nodejs-scraper/jobs.md
 6. Verifică pe https://peviitor.ro că job-urile sunt vizibile
 
 ## 4. Final

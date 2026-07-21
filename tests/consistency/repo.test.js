@@ -50,8 +50,6 @@ describe("Repository Configuration", () => {
       expect(data.homepage).toMatch(/^https?:\/\//);
       console.log(`✅ GitHub Pages URL: ${data.homepage}`);
     });
-
-    // deploy.yml removed — legacy GitHub Pages auto-deploys from docs/
   });
 
   describe("hosted HTML page", () => {
@@ -76,7 +74,8 @@ describe("Repository Configuration", () => {
       const html = await res.text();
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("peviitor");
-      expect(html).toContain("EPAM");
+      expect(html).toContain("SOBIS");
+      expect(html).toContain("sobis.ro");
       console.log(`✅ GitHub Pages HTML loaded from ${pagesUrl}`);
     });
   });

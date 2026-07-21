@@ -1,27 +1,27 @@
 {
-  "validatedAt": "2026-04-14T09:42:51.290Z",
+  "validatedAt": "2026-07-21T15:24:51.854Z",
   "source": "ANAF",
-  "brand": "EPAM",
+  "brand": "SOBIS",
   "anaf": {
-    "cui": 33159615,
-    "name": "EPAM SYSTEMS INTERNATIONAL SRL",
-    "address": "MUNICIPIUL BUCUREŞTI, SECTOR 1, BLD IANCU DE HUNEDOARA, NR.48, ET.9",
-    "registrationNumber": "J2014005735405",
+    "cui": 12018818,
+    "name": "SOBIS SOLUTIONS S.R.L.",
+    "address": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu",
+    "registrationNumber": "J32/2018/2024",
     "phone": "",
     "fax": "",
-    "postalCode": "11745",
-    "caenCode": "6220",
+    "postalCode": "",
+    "caenCode": "6201",
     "iban": "",
-    "registrationState": "TRANSFER(SOSIRE) din data 20.04.2022",
-    "registrationDate": "2014-05-14",
-    "fiscalAuthority": "Direcţia Generală a Finanţelor Publice Municipiul Bucureşti",
-    "ownershipForm": "PROPR.PRIVATA-CAPITAL PRIVAT STRAIN",
+    "registrationState": "INREGISTRAT",
+    "registrationDate": "2024-01-01",
+    "fiscalAuthority": "AJFP Sibiu",
+    "ownershipForm": "PROPR.PRIVATA-CAPITAL PRIVAT AUTOHTON",
     "organizationForm": "PERSOANA JURIDICA",
     "legalForm": "SOCIETATE COMERCIALĂ CU RĂSPUNDERE LIMITATĂ",
     "vatRegistered": true,
     "vatPeriods": [
       {
-        "start": "2020-07-24",
+        "start": "2024-01-01",
         "end": null,
         "yearStart": "",
         "message": ""
@@ -31,17 +31,17 @@
     "cashBasisVatStart": null,
     "cashBasisVatEnd": null,
     "inactive": false,
-    "inactiveSince": "2018-12-27",
-    "reactivatedSince": "2020-05-13",
+    "inactiveSince": null,
+    "reactivatedSince": null,
     "splitVat": false,
     "eFacturaRegistered": false,
     "headquartersAddress": {
-      "street": "Bld. Iancu de Hunedoara",
-      "number": "48",
-      "locality": "Sector 1 Mun. Bucureşti",
-      "county": "MUNICIPIUL BUCUREŞTI",
-      "country": "",
-      "postalCode": "11745"
+      "street": "",
+      "number": "",
+      "locality": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos",
+      "county": "Sibiu",
+      "country": "România",
+      "postalCode": ""
     },
     "fiscalAddress": {
       "street": "",
@@ -51,32 +51,46 @@
       "country": "",
       "postalCode": ""
     },
-    "administrators": [
-      {
-        "name": "JASON PETERSON",
-        "role": "administrator"
-      }
-    ],
+    "administrators": [],
     "authorizedCaenCodes": [
-      "6210",
-      "6220",
-      "6290",
-      "7020",
-      "8559"
+      "6201",
+      "6202",
+      "6209",
+      "6311",
+      "6312"
     ],
     "onrcStatus": 1048,
     "onrcStatusLabel": "Funcțiune"
   },
-  "peviitor": null,
+  "peviitor": {
+    "id": "52200796",
+    "company": "SOBIS AP S.R.L.",
+    "group": "Total Specific Solutions",
+    "brand": "SOBIS",
+    "status": "activ",
+    "location": [
+      "Sibiu"
+    ],
+    "website": [
+      "https://sobis-ap.ro"
+    ],
+    "career": [
+      "https://sobis-ap.ro/cariere"
+    ],
+    "lastScraped": "2026-07-21",
+    "scraperFile": "job-seeker-ro-spider.yml",
+    "_version_": 1871337250543894500,
+    "_root_": "52200796"
+  },
   "summary": {
-    "company": "EPAM SYSTEMS INTERNATIONAL SRL",
-    "cif": "33159615",
+    "company": "SOBIS SOLUTIONS S.R.L.",
+    "cif": "12018818",
     "active": true,
-    "inactiveSince": "2018-12-27",
-    "reactivatedSince": "2020-05-13",
-    "address": "MUNICIPIUL BUCUREŞTI, SECTOR 1, BLD IANCU DE HUNEDOARA, NR.48, ET.9",
-    "registrationNumber": "J2014005735405",
-    "caenCode": "6220",
+    "inactiveSince": null,
+    "reactivatedSince": null,
+    "address": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu",
+    "registrationNumber": "J32/2018/2024",
+    "caenCode": "6201",
     "vatRegistered": true,
     "eFacturaRegistered": false
   }

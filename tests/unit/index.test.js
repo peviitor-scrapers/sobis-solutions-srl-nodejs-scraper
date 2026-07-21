@@ -1,10 +1,169 @@
 import { jest } from '@jest/globals';
 
+const mockFetch = jest.fn();
+
+jest.unstable_mockModule('node-fetch', () => ({
+  default: mockFetch
+}));
+
 describe('index.js Component Tests', () => {
   let index;
 
   beforeAll(async () => {
     index = await import('../../index.js');
+  });
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  describe('searchANOFM', () => {
+    it('should return jobs from ANOFM API', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          rows: [
+            { id: 1001, occupation: 'Java Developer', address_locality_name: 'București > București Sectorul 1' },
+            { id: 1002, occupation: 'Frontend Developer', address_locality_name: 'Sibiu' }
+          ]
+        })
+      });
+
+      const jobs = await index.searchANOFM('12018818', true);
+
+      expect(jobs).toHaveLength(2);
+      expect(jobs[0]).toHaveProperty('url', 'https://mediere.anofm.ro/app/module/mediere/job/1001');
+      expect(jobs[0]).toHaveProperty('title', 'Java Developer');
+      expect(jobs[0]).toHaveProperty('location');
+      expect(jobs[0].location[0]).toBe('București Sectorul 1');
+      expect(jobs[0]).toHaveProperty('source', 'ANOFM');
+      expect(jobs[1]).toHaveProperty('title', 'Frontend Developer');
+      expect(jobs[1].location[0]).toBe('Sibiu');
+    });
+
+    it('should return empty array when no jobs found', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ rows: [] })
+      });
+
+      const jobs = await index.searchANOFM('99999999', true);
+      expect(jobs).toEqual([]);
+    });
+
+    it('should handle API error gracefully', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      });
+
+      const jobs = await index.searchANOFM('12018818', true);
+      expect(jobs).toEqual([]);
+    });
+
+    it('should handle network error gracefully', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('network down'));
+
+      const jobs = await index.searchANOFM('12018818', true);
+      expect(jobs).toEqual([]);
+    });
+
+    it('should handle empty locality name', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          rows: [
+            { id: 1003, occupation: 'Tester', address_locality_name: '' }
+          ]
+        })
+      });
+
+      const jobs = await index.searchANOFM('12018818', true);
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].location).toBeUndefined();
+    });
+
+    it('should paginate when more than 250 jobs', async () => {
+      const row250 = Array.from({ length: 250 }, (_, i) => ({
+        id: i + 1,
+        occupation: `Job ${i + 1}`,
+        address_locality_name: 'Sibiu'
+      }));
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ rows: row250 })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ rows: [{ id: 251, occupation: 'Job 251', address_locality_name: 'Sibiu' }] })
+        });
+
+      const jobs = await index.searchANOFM('12018818', false);
+      expect(jobs).toHaveLength(251);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('mapToJobModel', () => {
+    it('should map raw job to job model format', () => {
+      const rawJob = {
+        url: 'https://mediere.anofm.ro/app/module/mediere/job/1001',
+        title: 'Senior Developer',
+        location: ['Sibiu'],
+        tags: ['Java', 'Spring'],
+        workmode: 'hybrid'
+      };
+
+      const COMPANY_NAME = 'SOBIS SOLUTIONS S.R.L.';
+      const COMPANY_CIF = '12018818';
+
+      const result = index.mapToJobModel(rawJob, COMPANY_CIF, COMPANY_NAME);
+
+      expect(result.url).toBe(rawJob.url);
+      expect(result.title).toBe(rawJob.title);
+      expect(result.company).toBe(COMPANY_NAME);
+      expect(result.cif).toBe(COMPANY_CIF);
+      expect(result.location).toEqual(rawJob.location);
+      expect(result.tags).toEqual(rawJob.tags);
+      expect(result.workmode).toBe(rawJob.workmode);
+      expect(result.status).toBe('scraped');
+      expect(result.date).toBeDefined();
+    });
+
+    it('should remove undefined fields', () => {
+      const rawJob = {
+        url: 'https://mediere.anofm.ro/app/module/mediere/job/1001',
+        title: 'Job 1'
+      };
+
+      const result = index.mapToJobModel(rawJob, '12018818');
+
+      expect(result.location).toBeUndefined();
+      expect(result.tags).toBeUndefined();
+      expect(result.workmode).toBeUndefined();
+    });
+
+    it('should handle missing title', () => {
+      const rawJob = { url: 'https://mediere.anofm.ro/app/module/mediere/job/1001' };
+
+      const result = index.mapToJobModel(rawJob, '12018818');
+
+      expect(result.title).toBeUndefined();
+      expect(result.url).toBe('https://mediere.anofm.ro/app/module/mediere/job/1001');
+    });
+
+    it('should handle empty location array', () => {
+      const rawJob = {
+        url: 'https://mediere.anofm.ro/app/module/mediere/job/1001',
+        title: 'Job 1',
+        location: []
+      };
+
+      const result = index.mapToJobModel(rawJob, '12018818');
+      expect(result.location).toBeUndefined();
+    });
   });
 
   describe('transformJobsForSOLR', () => {
@@ -30,17 +189,17 @@ describe('index.js Component Tests', () => {
 
     it('should keep company uppercase', () => {
       const payload = {
-        source: 'epam.com',
-        company: 'epam systems international srl',
-        cif: '33159615',
+        source: 'anofm.ro',
+        company: 'sobis solutions s.r.l.',
+        cif: '12018818',
         jobs: [
-          { url: 'https://test.com/1', title: 'Job 1', company: 'epam systems', cif: '33159615' }
+          { url: 'https://test.com/1', title: 'Job 1', company: 'sobis solutions', cif: '12018818' }
         ]
       };
 
       const result = index.transformJobsForSOLR(payload);
 
-      expect(result.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      expect(result.company).toBe('SOBIS SOLUTIONS S.R.L.');
     });
 
     it('should normalize workmode values', () => {
@@ -65,156 +224,27 @@ describe('index.js Component Tests', () => {
       const result = index.transformJobsForSOLR({ jobs: [] });
       expect(result.jobs).toEqual([]);
     });
-  });
 
-  describe('mapToJobModel', () => {
-    it('should map raw job to job model format', () => {
-      const rawJob = {
-        url: 'https://careers.epam.com/job/123',
-        title: 'Senior Developer',
-        location: ['Bucharest'],
-        tags: ['Java', 'Spring'],
-        workmode: 'hybrid'
+    it('should default to România when location is empty', () => {
+      const payload = {
+        jobs: [
+          { url: 'https://test.com/1', title: 'Job 1', location: [] }
+        ]
       };
 
-      const COMPANY_NAME = 'EPAM SYSTEMS INTERNATIONAL SRL';
-      const COMPANY_CIF = '33159615';
-
-      const result = index.mapToJobModel(rawJob, COMPANY_CIF, COMPANY_NAME);
-
-      expect(result.url).toBe(rawJob.url);
-      expect(result.title).toBe(rawJob.title);
-      expect(result.company).toBe(COMPANY_NAME);
-      expect(result.cif).toBe(COMPANY_CIF);
-      expect(result.location).toEqual(rawJob.location);
-      expect(result.tags).toEqual(rawJob.tags);
-      expect(result.workmode).toBe(rawJob.workmode);
-      expect(result.status).toBe('scraped');
-      expect(result.date).toBeDefined();
+      const result = index.transformJobsForSOLR(payload);
+      expect(result.jobs[0].location).toEqual(['România']);
     });
 
-    it('should remove undefined fields', () => {
-      const rawJob = {
-        url: 'https://test.com/1',
-        title: 'Job 1'
+    it('should keep Sibiu as valid Romanian location', () => {
+      const payload = {
+        jobs: [
+          { url: 'https://test.com/1', title: 'Job 1', location: ['Sibiu'] }
+        ]
       };
 
-      const result = index.mapToJobModel(rawJob, '33159615');
-
-      expect(result.location).toBeUndefined();
-      expect(result.tags).toBeUndefined();
-      expect(result.workmode).toBeUndefined();
-    });
-
-    it('should handle missing title', () => {
-      const rawJob = { url: 'https://test.com/1' };
-
-      const result = index.mapToJobModel(rawJob, '33159615');
-
-      expect(result.title).toBeUndefined();
-      expect(result.url).toBe('https://test.com/1');
-    });
-  });
-
-  describe('parseApiJobs', () => {
-    it('should parse EPAM API response format', () => {
-      const apiData = {
-        data: {
-          total: 100,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Senior Developer',
-              city: [{ name: 'Bucharest' }],
-              country: [{ name: 'Romania' }],
-              vacancy_type: 'Hybrid',
-              skills: ['Java', 'Spring']
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs).toHaveLength(1);
-      expect(result.jobs[0].title).toBe('Senior Developer');
-      expect(result.jobs[0].location).toEqual(['Bucharest']);
-      expect(result.jobs[0].workmode).toBe('hybrid');
-    });
-
-    it('should handle empty job list', () => {
-      const apiData = { data: { total: 0, jobs: [] } };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs).toEqual([]);
-    });
-
-    it('should handle missing data field', () => {
-      const result = index.parseApiJobs({});
-
-      expect(result.jobs).toEqual([]);
-    });
-
-    it('should handle multiple cities', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Developer',
-              city: [{ name: 'Bucharest' }, { name: 'Cluj-Napoca' }],
-              country: [{ name: 'Romania' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].location).toEqual(['Bucharest', 'Cluj-Napoca']);
-    });
-  });
-
-  describe('URL Generation', () => {
-    it('should use seo.url when available', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt123',
-              name: 'Test Job',
-              seo: { url: '/en/vacancy/test-job-blt123_en' },
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/test-job-blt123_en');
-    });
-
-    it('should fallback to uid-based URL when no seo.url', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt456',
-              name: 'Test Job',
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/blt456_en');
+      const result = index.transformJobsForSOLR(payload);
+      expect(result.jobs[0].location).toEqual(['Sibiu']);
     });
   });
 });

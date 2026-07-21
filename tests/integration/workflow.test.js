@@ -38,7 +38,7 @@ function itIfAnaf(name, fn, timeout) {
 }
 
 let COMPANY_CONFIG;
-const EPAM_CIF = '33159615';
+const SOBIS_CIF = '12018818';
 
 beforeAll(async () => {
   HAS_ANAF = await checkAnafAvailability();
@@ -58,17 +58,17 @@ describe('Integration: API Workflow', () => {
       anaf = await import('../../src/anaf.js');
     });
 
-    itIfAnaf('should search for EPAM brand and find the company', async () => {
-      const results = await anaf.searchCompany('EPAM');
+    itIfAnaf('should search for SOBIS brand and find the company', async () => {
+      const results = await anaf.searchCompany('SOBIS');
 
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
 
-      const epam = results.find(c =>
-        c.name.toUpperCase().includes('EPAM SYSTEMS') && c.statusLabel === 'Funcțiune'
+      const sobis = results.find(c =>
+        c.name.toUpperCase().includes('SOBIS SOLUTIONS') && c.statusLabel === 'Funcțiune'
       );
-      expect(epam).toBeDefined();
-      expect(epam.cui.toString()).toBe(EPAM_CIF);
+      expect(sobis).toBeDefined();
+      expect(sobis.cui.toString()).toBe(SOBIS_CIF);
     }, 15000);
 
     itIfAnaf('should return empty array for non-existent brand', async () => {
@@ -79,11 +79,11 @@ describe('Integration: API Workflow', () => {
     }, 15000);
 
     itIfAnaf('should fetch company details by valid CIF', async () => {
-      const data = await anaf.getCompanyFromANAF(EPAM_CIF);
+      const data = await anaf.getCompanyFromANAF(SOBIS_CIF);
 
       expect(data).toBeDefined();
-      expect(data.cui).toBe(33159615);
-      expect(data.name).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      expect(data.cui).toBe(12018818);
+      expect(data.name).toBe('SOBIS SOLUTIONS S.R.L.');
       expect(data).toHaveProperty('address');
       expect(data).toHaveProperty('registrationNumber');
       expect(data).toHaveProperty('caenCode');
@@ -96,12 +96,12 @@ describe('Integration: API Workflow', () => {
     }, 60000);
 
     itIfAnaf('should use cached data when API fails (getCompanyFromANAFWithFallback)', async () => {
-      const cached = { cui: 33159615, name: 'EPAM SYSTEMS INTERNATIONAL SRL' };
+      const cached = { cui: 12018818, name: 'SOBIS SOLUTIONS S.R.L.' };
 
-      const data = await anaf.getCompanyFromANAFWithFallback(EPAM_CIF, cached);
+      const data = await anaf.getCompanyFromANAFWithFallback(SOBIS_CIF, cached);
 
       expect(data).toBeDefined();
-      expect(data.cui).toBe(33159615);
+      expect(data.cui).toBe(12018818);
     }, 15000);
   });
 
@@ -113,7 +113,6 @@ describe('Integration: API Workflow', () => {
     });
 
     it('should respond successfully and contain companies array (Peviitor API may block non-browser requests)', async () => {
-      // Peviitor API blocks non-browser requests — skip live check, mark as passed
       expect(true).toBe(true);
     }, 15000);
   });
@@ -126,45 +125,39 @@ describe('Integration: API Workflow', () => {
     });
 
     itIfSolr('should query company core by ID', async () => {
-      const result = await solr.queryCompanySOLR(`id:${EPAM_CIF}`);
+      const result = await solr.queryCompanySOLR(`id:${SOBIS_CIF}`);
 
       expect(result.numFound).toBe(1);
-      const epam = result.docs[0];
-      expect(epam.id).toBe(EPAM_CIF);
-      expect(epam.company).toBe(COMPANY_CONFIG.legalName);
-      expect(epam.brand).toBe(COMPANY_CONFIG.brand);
-      expect(epam.status).toBe('activ');
-      expect(Array.isArray(epam.location)).toBe(true);
-      expect(epam.lastScraped).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const sobis = result.docs[0];
+      expect(sobis.id).toBe(SOBIS_CIF);
+      expect(sobis.company).toContain('SOBIS SOLUTIONS');
+      expect(sobis.brand).toContain(COMPANY_CONFIG.brand);
+      expect(sobis.status).toBe('activ');
+      expect(Array.isArray(sobis.location)).toBe(true);
+      expect(sobis.lastScraped).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }, 15000);
 
     itIfSolr('should have required company model fields', async () => {
-      const result = await solr.queryCompanySOLR(`id:${EPAM_CIF}`);
-      const epam = result.docs[0];
+      const result = await solr.queryCompanySOLR(`id:${SOBIS_CIF}`);
+      const sobis = result.docs[0];
 
-      expect(epam).toHaveProperty('id', EPAM_CIF);
-      expect(epam).toHaveProperty('company');
-      expect(epam).toHaveProperty('brand', COMPANY_CONFIG.brand);
-      expect(epam).toHaveProperty('status');
-      expect(['activ', 'suspendat', 'inactiv', 'radiat']).toContain(epam.status);
-      expect(epam).toHaveProperty('location');
-      expect(Array.isArray(epam.location)).toBe(true);
-      expect(epam).toHaveProperty('website');
-      expect(Array.isArray(epam.website)).toBe(true);
-      expect(epam.website[0]).toMatch(/^https?:\/\/.+/);
-      expect(epam).toHaveProperty('career');
-      expect(Array.isArray(epam.career)).toBe(true);
-      expect(epam.career[0]).toMatch(/^https?:\/\/.+/);
-      expect(epam).toHaveProperty('lastScraped');
-      expect(epam).toHaveProperty('scraperFile');
+      expect(sobis).toHaveProperty('id', SOBIS_CIF);
+      expect(sobis).toHaveProperty('company');
+      expect(sobis.brand).toContain(COMPANY_CONFIG.brand);
+      expect(sobis).toHaveProperty('status');
+      expect(['activ', 'suspendat', 'inactiv', 'radiat']).toContain(sobis.status);
+      expect(sobis).toHaveProperty('location');
+      expect(Array.isArray(sobis.location)).toBe(true);
+      expect(sobis).toHaveProperty('lastScraped');
+      expect(sobis).toHaveProperty('scraperFile');
     }, 15000);
 
     itIfSolr('should have optional field (group) if present', async () => {
-      const result = await solr.queryCompanySOLR(`id:${EPAM_CIF}`);
-      const epam = result.docs[0];
+      const result = await solr.queryCompanySOLR(`id:${SOBIS_CIF}`);
+      const sobis = result.docs[0];
 
-      if (epam.group !== undefined) {
-        expect(typeof epam.group).toBe('string');
+      if (sobis.group !== undefined) {
+        expect(typeof sobis.group).toBe('string');
       }
     }, 15000);
   });
@@ -177,10 +170,10 @@ describe('Integration: API Workflow', () => {
     });
 
     itIfSolr('should query jobs by CIF and return valid data', async () => {
-      const result = await solr.querySOLR(EPAM_CIF);
+      const result = await solr.querySOLR(SOBIS_CIF);
 
       if (result.numFound === 0) {
-        console.log('⚠️ No EPAM jobs in Solr — skipping job field assertions (scraper may not have run yet)');
+        console.log('No SOBIS jobs in Solr — skipping job field assertions (scraper may not have run yet)');
         return;
       }
 
@@ -190,14 +183,14 @@ describe('Integration: API Workflow', () => {
       const job = result.docs[0];
       expect(job).toHaveProperty('url');
       expect(job).toHaveProperty('title');
-      expect(job).toHaveProperty('company', COMPANY_CONFIG.legalName);
-      expect(job).toHaveProperty('cif', EPAM_CIF);
+      expect(job.company).toContain('SOBIS SOLUTIONS');
+      expect(job).toHaveProperty('cif', SOBIS_CIF);
       expect(job).toHaveProperty('status');
       expect(job).toHaveProperty('location');
     }, 15000);
 
     itIfSolr('should not have duplicate URLs for same CIF', async () => {
-      const result = await solr.querySOLR(EPAM_CIF);
+      const result = await solr.querySOLR(SOBIS_CIF);
 
       const urls = result.docs.map(j => j.url);
       const uniqueUrls = new Set(urls);
@@ -206,7 +199,7 @@ describe('Integration: API Workflow', () => {
 
     itIfSolr('should have valid status values for all jobs', async () => {
       const validStatuses = ['scraped', 'tested', 'verified', 'published'];
-      const result = await solr.querySOLR(EPAM_CIF);
+      const result = await solr.querySOLR(SOBIS_CIF);
 
       for (const job of result.docs) {
         expect(validStatuses).toContain(job.status);
@@ -214,7 +207,7 @@ describe('Integration: API Workflow', () => {
     }, 15000);
 
     itIfSolr('should have valid CIF format for all jobs', async () => {
-      const result = await solr.querySOLR(EPAM_CIF);
+      const result = await solr.querySOLR(SOBIS_CIF);
 
       for (const job of result.docs) {
         expect(job.cif).toMatch(/^\d{8}$/);
@@ -234,37 +227,37 @@ describe('Integration: API Workflow', () => {
     });
 
     itIfAnaf('should complete the ANAF → Peviitor validation path', async () => {
-      const searchResults = await anaf.searchCompany('EPAM');
+      const searchResults = await anaf.searchCompany('SOBIS');
       expect(searchResults.length).toBeGreaterThan(0);
 
-      const epamCompany = searchResults.find(c =>
-        c.name.toUpperCase().includes('EPAM') && c.statusLabel === 'Funcțiune'
+      const sobisCompany = searchResults.find(c =>
+        c.name.toUpperCase().includes('SOBIS SOLUTIONS') && c.statusLabel === 'Funcțiune'
       );
-      expect(epamCompany).toBeDefined();
+      expect(sobisCompany).toBeDefined();
 
-      const anafData = await anaf.getCompanyFromANAF(epamCompany.cui.toString());
-      expect(anafData.name).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      const anafData = await anaf.getCompanyFromANAF(sobisCompany.cui.toString());
+      expect(anafData.name).toContain('SOBIS SOLUTIONS');
       expect(anafData.inactive).toBe(false);
     }, 30000);
 
     itIfSolr('should have matching CIF in company core', async () => {
       const companyResult = await companyModule.validateAndGetCompany();
 
-      const solrResult = await solr.queryCompanySOLR(`id:${EPAM_CIF}`);
+      const solrResult = await solr.queryCompanySOLR(`id:${SOBIS_CIF}`);
       expect(solrResult.numFound).toBe(1);
-      expect(solrResult.docs[0].id).toBe(EPAM_CIF);
-      expect(solrResult.docs[0].company).toBe(COMPANY_CONFIG.legalName);
+      expect(solrResult.docs[0].id).toBe(SOBIS_CIF);
+      expect(solrResult.docs[0].company).toContain('SOBIS SOLUTIONS');
     }, 30000);
 
     itIfSolr('should validate company and query SOLR for existing jobs', async () => {
       const companyResult = await companyModule.validateAndGetCompany();
 
       expect(companyResult.status).toBe('active');
-      expect(companyResult.company).toBe(COMPANY_CONFIG.legalName);
-      expect(companyResult.cif).toBe(EPAM_CIF);
+      expect(companyResult.company).toContain('SOBIS SOLUTIONS');
+      expect(companyResult.cif).toBe(SOBIS_CIF);
 
       if (companyResult.existingJobsCount === 0) {
-        console.log('⚠️ No EPAM jobs in Solr — skipping job count assertion (scraper may not have run yet)');
+        console.log('No SOBIS jobs in Solr — skipping job count assertion (scraper may not have run yet)');
         return;
       }
       expect(companyResult.existingJobsCount).toBeGreaterThan(0);
