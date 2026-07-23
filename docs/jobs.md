@@ -9,11 +9,11 @@
 | Status | activ |
 | Location | Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
-| Last Scraped | 2026-07-22 |
+| Last Scraped | 2026-07-23 |
 
 ## Current Job Listings (9)
 
-_Generated: 2026-07-22T08:02:12.309Z_
+_Generated: 2026-07-23T08:05:17.958Z_
 
 ### AJUTOR OSPATAR
 
