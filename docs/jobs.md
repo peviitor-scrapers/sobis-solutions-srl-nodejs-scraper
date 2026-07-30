@@ -9,11 +9,17 @@
 | Status | activ |
 | Location | Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
-| Last Scraped | 2026-07-29 |
+| Last Scraped | 2026-07-30 |
 
-## Current Job Listings (9)
+## Current Job Listings (10)
 
-_Generated: 2026-07-29T08:13:05.771Z_
+_Generated: 2026-07-30T08:01:26.026Z_
+
+### RECEPTIONER DE HOTEL
+
+- **URL:** [https://mediere.anofm.ro/app/module/mediere/job/3340140](https://mediere.anofm.ro/app/module/mediere/job/3340140)
+- **Location:** România
+- **Status:** scraped
 
 ### AJUTOR OSPATAR
 
