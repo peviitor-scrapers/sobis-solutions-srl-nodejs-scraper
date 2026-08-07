@@ -9,11 +9,11 @@
 | Status | activ |
 | Location | Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
-| Last Scraped | 2026-08-06 |
+| Last Scraped | 2026-08-07 |
 
 ## Current Job Listings (9)
 
-_Generated: 2026-08-06T08:09:41.091Z_
+_Generated: 2026-08-07T06:56:26.506Z_
 
 ### RECEPTIONER DE HOTEL
 
