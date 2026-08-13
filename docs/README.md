@@ -22,7 +22,7 @@ job_seeker_ro_spider
 3. **Scrape-uiește job-urile** — interoghează API-ul public ANOFM filtrat pe CIF
 4. **Transformă datele** — normalizează locațiile (doar orașe românești), tag-urile (lowercase), workmode-ul (remote/on-site/hybrid)
 5. **Publică în peviitor** — upsert via `api.peviitor.ro/v1` (job-uri) + upsert companie cu adresa completă
-6. **Generează docs/jobs.md** — fișier markdown cu informații companie + toate job-urile curente, publicat pe [GitHub Pages](https://sebiboga.github.io/sobis-solutions-srl-nodejs-scraper/jobs.md)
+6. **Generează docs/jobs.md** — fișier markdown cu informații companie + toate job-urile curente, publicat pe [GitHub Pages](https://peviitor-scrapers.github.io/sobis-solutions-srl-nodejs-scraper/jobs.md)
 
 ## Structură proiect
 

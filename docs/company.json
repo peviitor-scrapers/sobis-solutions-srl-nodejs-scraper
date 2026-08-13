@@ -6,5 +6,5 @@
   "location": ["Sibiu"],
   "website": ["https://www.sobis.ro"],
   "career": ["https://www.sobis.ro"],
-  "scraperFile": "https://github.com/sebiboga/sobis-solutions-srl-nodejs-scraper/actions/workflows/job-seeker-ro-spider.yml"
+  "scraperFile": "https://github.com/peviitor-scrapers/sobis-solutions-srl-nodejs-scraper/actions/workflows/job-seeker-ro-spider.yml"
 }

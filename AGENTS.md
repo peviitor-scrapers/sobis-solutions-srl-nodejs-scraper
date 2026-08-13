@@ -18,7 +18,7 @@ All Solr operations go through the peviitor API (`scraper/api.js` — `https://a
 
 When polling a workflow run, always specify the repo explicitly:
 ```bash
-gh run view <RUN_ID> --repo sebiboga/sobis-solutions-srl-nodejs-scraper --json status -q .status
+gh run view <RUN_ID> --repo peviitor-scrapers/sobis-solutions-srl-nodejs-scraper --json status -q .status
 ```
 
 ### 1. Temporary Files
