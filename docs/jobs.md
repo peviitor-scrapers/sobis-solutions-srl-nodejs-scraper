@@ -14,7 +14,7 @@
 
 ## Current Job Listings (9)
 
-_Generated: 2026-08-13T12:30:08.095Z_
+_Generated: 2026-08-13T13:08:10.962Z_
 
 ### RECEPTIONER DE HOTEL
 
