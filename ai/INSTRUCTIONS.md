@@ -62,7 +62,7 @@ When working on this scraper:
 
 ```bash
 # Set environment variables
-export SOLR_AUTH=your-solr-credentials
+export (no credentials needed — peviitor API)=your-solr-credentials
 
 # Run the full scraper workflow (single command)
 node index.js
@@ -89,7 +89,7 @@ When running `node index.js`, the following steps happen automatically:
 ## Workflow Flowchart
 
 ```
-config/company.json (single source of truth: CIF, brand, URLs)
+scraper/config/company.json (single source of truth: CIF, brand, URLs)
     │
     ▼
 index.js
@@ -127,17 +127,17 @@ generateJobsMarkdown() → docs/jobs.md
 
 | File | Role |
 |------|------|
-| `config/company.json` | **Single source of truth** for company identity (CIF, brand, URLs, API params) |
-| `config/company.js` | ESM wrapper that loads `config/company.json` for Node code |
+| `scraper/config/company.json` | **Single source of truth** for company identity (CIF, brand, URLs, API params) |
+| `config/company.js` | ESM wrapper that loads `scraper/config/company.json` for Node code |
 | `index.js` | Main entry point - full workflow: validate company → scrape → transform → upsert → generate docs/jobs.md |
 | `company.js` | Validates company via ANAF + Peviitor; caches in root `company.json` (7-day TTL) and `tmp/company.json` |
-| `solr.js` | SOLR operations module - query, delete, upsert jobs + standalone commands |
-| `validate-jobs.js` | Manual deep validator (content-aware); thin CLI wrapper over `src/job-validator.js` |
-| `src/anaf.js` | ANAF API core module - searchCompany(brand) and getCompanyFromANAF(cif) with 3-retry/2s-backoff |
-| `src/markdown-generator.js` | Generates `docs/jobs.md` with company info and all scraped jobs |
-| `src/job-validator.js` | Shared validation primitives: `validateByHead`, `validateByContent`, `DEFAULT_EXPIRED_KEYWORDS` |
-| `demoanaf.js` | CLI entry point for ANAF module (thin wrapper around src/anaf.js) |
-| `tests/validate-sobis-solutions-jobs.js` | CI fast validator (HEAD only); thin CLI over `src/job-validator.js` + `solr.js` |
+| `api.js` | SOLR operations module - query, delete, upsert jobs + standalone commands |
+| `validate-jobs.js` | Manual deep validator (content-aware); thin CLI wrapper over `scraper/job-validator.js` |
+| `scraper/anaf.js` | ANAF API core module - searchCompany(brand) and getCompanyFromANAF(cif) with 3-retry/2s-backoff |
+| `scraper/markdown-generator.js` | Generates `docs/jobs.md` with company info and all scraped jobs |
+| `scraper/job-validator.js` | Shared validation primitives: `validateByHead`, `validateByContent`, `DEFAULT_EXPIRED_KEYWORDS` |
+| `demoanaf.js` | CLI entry point for ANAF module (thin wrapper around scraper/anaf.js) |
+| `tests/validate-sobis-solutions-jobs.js` | CI fast validator (HEAD only); thin CLI over `scraper/job-validator.js` + `api.js` |
 | `tests/unit/index.test.js` | Unit tests for parseAnofmJobs, mapToJobModel, transformJobsForSOLR |
 | `tests/unit/company.test.js` | Unit tests for validateAndGetCompany and fallback caching |
 | `tests/unit/solr.test.js` | Unit tests for SOLR query, upsert, delete operations |
@@ -155,7 +155,7 @@ generateJobsMarkdown() → docs/jobs.md
 - **DemoANAF Search**: `https://demoanaf.ro/api/search?q=BRAND` - Search companies by name/brand
 - **DemoANAF Company**: `https://demoanaf.ro/api/company/:cui` - Get company details by CIF
 - **Peviitor API**: `https://api.peviitor.ro/v1/company/`
-- **Solr**: `https://solr.peviitor.ro/solr/job` (auth: via `SOLR_AUTH` environment variable)
+- **Solr**: `https://solr.peviitor.ro/solr/job` (auth: via `(no credentials needed — peviitor API)` environment variable)
 
 ## Rate Limiting & Politeness
 
@@ -165,7 +165,7 @@ The scraper is intentionally slow to be a good citizen:
 |---------|-------|-------|
 | Delay between pages | 1000 ms | `index.js` — `sleep(1000)` in `scrapeAllListings()` |
 | Request timeout | 10000 ms | `index.js` — `TIMEOUT` constant |
-| ANAF retries | 3 attempts, 2s exponential backoff | `src/anaf.js` |
+| ANAF retries | 3 attempts, 2s exponential backoff | `scraper/anaf.js` |
 | Concurrency | 1 (sequential) | No `Promise.all` for paginated fetches |
 | User-Agent | `job_seeker_ro_spider` | Identifies the scraper in server logs |
 
@@ -175,7 +175,7 @@ Derived scrapers should keep these defaults unless the target site explicitly pe
 
 | Variable | Description |
 |----------|-------------|
-| `SOLR_AUTH` | SOLR credentials in format `user:password` |
+| `(no credentials needed — peviitor API)` | SOLR credentials in format `user:password` |
 | `GITHUB_REPOSITORY` | Used by consistency tests — format: `owner/repo` |
 | `GITHUB_TOKEN` | GitHub API token for consistency tests |
 
@@ -185,13 +185,13 @@ Derived scrapers should keep these defaults unless the target site explicitly pe
 
 ```bash
 # Verify jobs in SOLR by CIF
-node solr.js <CIF>
+node api.js <CIF>
 
 # Extract existing jobs from SOLR by CIF
-node solr.js extract <CIF>
+node api.js extract <CIF>
 
 # Query company in SOLR
-node solr.js company <search_term>
+node api.js company <search_term>
 
 # Get company details from ANAF by CIF
 node demoanaf.js <CIF>
@@ -213,7 +213,7 @@ node validate-jobs.js <CIF> --delete
 
 This project requires multiple levels of testing:
 
-1. **Unit Tests** - Test individual modules (solr.js, company.js) in isolation
+1. **Unit Tests** - Test individual modules (api.js, company.js) in isolation
 2. **Integration Tests** - Test API interactions (ANAF, Peviitor, SOLR) in `/tests/integration` folder
 3. **E2E Tests** - Test full workflow in `/tests/e2e` folder
 

@@ -1,4 +1,4 @@
-# SOBIS SOLUTIONS S.R.L.
+# SOBIS SOLUTIONS SRL
 
 ## Company Info
 
@@ -7,13 +7,14 @@
 | CIF | 12018818 |
 | Brand | SOBIS |
 | Status | activ |
-| Location | Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu |
+| Location | JUD. SIBIU, SAT ARPAŞU DE SUS COM. ARPAŞU DE JOS,  , NR.505 |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
+| Careers | [https://www.sobis.ro](https://www.sobis.ro) |
 | Last Scraped | 2026-08-13 |
 
 ## Current Job Listings (9)
 
-_Generated: 2026-08-13T07:05:20.550Z_
+_Generated: 2026-08-13T12:22:21.073Z_
 
 ### RECEPTIONER DE HOTEL
 

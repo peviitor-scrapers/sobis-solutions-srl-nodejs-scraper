@@ -1,19 +1,22 @@
 import { jest } from '@jest/globals';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
+const API_BASE = 'https://api.peviitor.ro/v1';
+const TEST_CIF = '12018818';
+const TEST_BRAND = 'SOBIS';
+const ANOFM_API_URL = 'https://mediere.anofm.ro/api/entity/vw_public_job_posting';
 
-const HAS_SOLR = !!process.env.SOLR_AUTH;
+let HAS_API = false;
 
-function itIfSolr(name, fn, timeout) {
-  if (HAS_SOLR) {
-    return it(name, fn, timeout);
+async function checkApiAvailability() {
+  try {
+    const res = await fetch(`${API_BASE}/scraper/jobs/?cif=${TEST_CIF}&rows=1`, {
+      signal: AbortSignal.timeout(5000)
+    });
+    return res.ok || res.status === 400;
+  } catch {
+    return false;
   }
-  return it.skip(`${name} (skipped: SOLR_AUTH not set)`, fn, timeout);
 }
 
 let HAS_ANAF = false;
@@ -30,6 +33,13 @@ async function checkAnafAvailability() {
   }
 }
 
+function itIfApi(name, fn, timeout) {
+  if (HAS_API) {
+    return it(name, fn, timeout);
+  }
+  return it.skip(`${name} (skipped: API unavailable)`, fn, timeout);
+}
+
 function itIfAnaf(name, fn, timeout) {
   if (HAS_ANAF) {
     return it(name, fn, timeout);
@@ -37,16 +47,44 @@ function itIfAnaf(name, fn, timeout) {
   return it.skip(`${name} (skipped: ANAF API unavailable)`, fn, timeout);
 }
 
-beforeAll(async () => {
-  HAS_ANAF = await checkAnafAvailability();
-  if (HAS_SOLR) {
-    process.env.SOLR_AUTH = process.env.SOLR_AUTH;
-  }
-});
+let HAS_ANOFM = false;
 
-const TEST_CIF = '12018818';
-const TEST_BRAND = 'SOBIS';
-const ANOFM_API_URL = 'https://mediere.anofm.ro/api/entity/vw_public_job_posting';
+async function checkAnofmAvailability() {
+  try {
+    const res = await fetch(ANOFM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'job_seeker_ro_spider'
+      },
+      body: JSON.stringify({
+        current: 1,
+        rowCount: 1,
+        sort: { created_at: 'desc' },
+        employer_tax_code: TEST_CIF
+      }),
+      signal: AbortSignal.timeout(5000)
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function itIfAnofm(name, fn, timeout) {
+  if (HAS_ANOFM) {
+    return it(name, fn, timeout);
+  }
+  return it.skip(`${name} (skipped: ANOFM API unavailable)`, fn, timeout);
+}
+
+beforeAll(async () => {
+  [HAS_API, HAS_ANAF, HAS_ANOFM] = await Promise.all([
+    checkApiAvailability(),
+    checkAnafAvailability(),
+    checkAnofmAvailability()
+  ]);
+});
 
 describe('E2E: Full Scraping Pipeline', () => {
 
@@ -92,7 +130,7 @@ describe('E2E: Full Scraping Pipeline', () => {
     let index;
 
     beforeAll(async () => {
-      index = await import('../../index.js');
+      index = await import('../../scraper/index.js');
     });
 
     it('should fetch jobs from ANOFM API via searchANOFM', async () => {
@@ -122,7 +160,7 @@ describe('E2E: Full Scraping Pipeline', () => {
         return;
       }
 
-      const model = index.mapToJobModel(jobs[0], TEST_CIF);
+      const model = index.mapToJobModel(jobs[0], TEST_CIF, 'SOBIS SOLUTIONS S.R.L.');
 
       expect(model).toHaveProperty('url');
       expect(model).toHaveProperty('title');
@@ -168,8 +206,8 @@ describe('E2E: Full Scraping Pipeline', () => {
     let company;
 
     beforeAll(async () => {
-      anaf = await import('../../src/anaf.js');
-      company = await import('../../company.js');
+      anaf = await import('../../scraper/anaf.js');
+      company = await import('../../scraper/company.js');
     });
 
     itIfAnaf('should find SOBIS SOLUTIONS in ANAF and validate active status', async () => {
@@ -187,7 +225,7 @@ describe('E2E: Full Scraping Pipeline', () => {
       expect(anafData.inactive).toBe(false);
     }, 30000);
 
-    itIfSolr('should run full validation and report active status with job count', async () => {
+    itIfApi('should run full validation and report active status with job count', async () => {
       const result = await company.validateAndGetCompany();
 
       expect(result.status).toBe('active');
@@ -195,7 +233,7 @@ describe('E2E: Full Scraping Pipeline', () => {
       expect(result.cif).toBe(TEST_CIF);
 
       if (result.existingJobsCount === 0) {
-        console.log('No SOBIS jobs in Solr — skipping job count assertion');
+        console.log('No SOBIS jobs in API — skipping job count assertion');
         return;
       }
       expect(result.existingJobsCount).toBeGreaterThan(0);
@@ -206,7 +244,7 @@ describe('E2E: Full Scraping Pipeline', () => {
     let anaf;
 
     beforeAll(async () => {
-      anaf = await import('../../src/anaf.js');
+      anaf = await import('../../scraper/anaf.js');
     });
 
     itIfAnaf('should detect inactive/radiated companies via ANAF', async () => {
@@ -228,18 +266,18 @@ describe('E2E: Full Scraping Pipeline', () => {
     }, 30000);
   });
 
-  describe('SOLR Data Verification', () => {
-    let solr;
+  describe('API Data Verification', () => {
+    let api;
 
     beforeAll(async () => {
-      solr = await import('../../solr.js');
+      api = await import('../../scraper/api.js');
     });
 
-    itIfSolr('should have SOBIS jobs in SOLR with correct company name', async () => {
-      const result = await solr.querySOLR(TEST_CIF);
+    itIfApi('should have SOBIS jobs in API with correct company name', async () => {
+      const result = await api.querySOLR(TEST_CIF);
 
       if (result.numFound === 0) {
-        console.log('No SOBIS jobs in Solr — skipping SOLR data verification');
+        console.log('No SOBIS jobs in API — skipping API data verification');
         return;
       }
 
@@ -249,13 +287,12 @@ describe('E2E: Full Scraping Pipeline', () => {
       }
     }, 15000);
 
-    itIfSolr('should have SOBIS company core entry with required fields', async () => {
-      const result = await solr.queryCompanySOLR(`id:${TEST_CIF}`);
+    itIfApi('should have SOBIS company core entry with required fields', async () => {
+      const companyDoc = await api.getCompanyByCif(TEST_CIF);
 
-      expect(result.numFound).toBe(1);
-      const sobis = result.docs[0];
-      expect(sobis.company).toContain('SOBIS SOLUTIONS');
-      expect(sobis.status).toBe('activ');
+      expect(companyDoc).toBeDefined();
+      expect(companyDoc.company).toBe('SOBIS SOLUTIONS S.R.L.');
+      expect(companyDoc.status).toBe('activ');
     }, 15000);
   });
 });

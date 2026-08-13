@@ -6,9 +6,11 @@ SOBIS SOLUTIONS scraper for peviitor.ro (Node.js, ESM, Jest)
 ## 🌱 This Repo Is a Derived Scraper
 This repo is derived from the [EPAM template](https://github.com/sebiboga/epam-systems-international-srl-nodejs-scraper).
 
-**All company-specific identity lives in `config/company.json`** (CIF, brand, legalName, URLs). Read from `config/company.js` in Node code, or via `jq` in workflows.
+**All company-specific identity lives in `scraper/config/company.json`** (id, company, brand, status, location, website, career, scraperFile). Read from `scraper/config/company.js` in Node code, or via `jq` in workflows.
 
-The scraping logic in `index.js` queries the ANOFM public API (`/api/entity/vw_public_job_posting`) filtered by CIF to fetch job listings. SOBIS SOLUTIONS has no public careers page — ANOFM is the sole data source.
+The scraping logic in `scraper/index.js` queries the ANOFM public API (`/api/entity/vw_public_job_posting`) filtered by CIF to fetch job listings. SOBIS SOLUTIONS has no public careers page — ANOFM is the sole data source.
+
+All Solr operations go through the peviitor API (`scraper/api.js` — `https://api.peviitor.ro/v1`). **No direct Solr access, no `SOLR_AUTH`.**
 
 ## Critical Rules
 
@@ -23,15 +25,14 @@ gh run view <RUN_ID> --repo sebiboga/sobis-solutions-srl-nodejs-scraper --json s
 All temporary/scratch files MUST go in `tmp/` inside the project root.
 
 ### 2. Issues & GitHub
-- **Orice modificare de cod trebuie să aibă un issue în GitHub Issues** (vezi [ISSUES.md](ISSUES.md))
+- **Orice modificare de cod trebuie să aibă un issue în GitHub Issues** (vezi [ai/ISSUES.md](ai/ISSUES.md))
 - Excepții: typo-uri, whitespace, documentație minoră
 - Create a GitHub issue before implementing any change
 - Commit messages must reference the issue they close
 - Never commit credentials (`.env.local`, `*.pem`, etc.)
 
 ### 3. Environment Variables
-- `SOLR_AUTH` must be set in `.env.local` for SOLR tests (format: `user:password`)
-- `.env.local` is loaded automatically at runtime via `dotenv`
+No credentials required for scraping — the peviitor API is public.
 
 ### 4. Testing
 ```bash
@@ -41,10 +42,10 @@ npm test
 # Unit tests (no env vars needed)
 npm run test:unit
 
-# Integration tests (ANAF public API, SOLR conditional)
+# Integration tests (ANAF + peviitor API, conditional skip)
 npm run test:integration
 
-# E2E tests (ANOFM API, SOLR conditional)
+# E2E tests (ANOFM API, conditional skip)
 npm run test:e2e
 
 # Consistency tests (GitHub repo config)
@@ -56,15 +57,16 @@ npm run test:consistency
 - Run with `--experimental-vm-modules` flag
 
 ### 6. Verification
-- După orice modificare, urmează [VERIFY.md](VERIFY.md) pas cu pas
+- După orice modificare, urmează [ai/VERIFY.md](ai/VERIFY.md) pas cu pas
 - Toate workflow-urile din `.github/workflows/` trebuie să treacă înainte de merge
 
 ### 7. Module Structure
-- `config/company.json` + `config/company.js` — single source of truth for company identity
-- `src/anaf.js` — core ANAF library (imported by company.js)
-- `src/markdown-generator.js` — generates `docs/jobs.md` after each scrape
-- `src/job-validator.js` — shared validateByHead + validateByContent
-- `company.js` — company validation (ANAF + Peviitor + SOLR)
-- `solr.js` — SOLR operations
-- `validate-jobs.js` — manual deep validator
-- `index.js` — main scraper orchestrator (ANOFM API query by CIF)
+- `scraper/config/company.json` + `scraper/config/company.js` — single source of truth for company identity
+- `scraper/anaf.js` — core ANAF library (demoanaf.ro → cuiscan.ro fallback)
+- `scraper/api.js` — peviitor API module (query/upsert/delete jobs + company)
+- `scraper/company.js` — company validation (ANAF + Peviitor API, cache in `company.json`/`tmp/company.json`)
+- `scraper/job-validator.js` — shared validateByHead + validateByContent + validateByBrowser
+- `scraper/markdown-generator.js` — generates `docs/jobs.md` after each scrape
+- `scraper/validate-jobs.js` — manual deep validator
+- `scraper/index.js` — main scraper orchestrator (ANOFM API query by CIF)
+- `tests/validate-sobis-solutions-jobs.js` — CI validator (--head/--content/--browser)

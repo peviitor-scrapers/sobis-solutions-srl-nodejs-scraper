@@ -304,7 +304,7 @@
         <li data-i18n="f2">Parsează cu fetch (JSON API)</li>
         <li data-i18n="f3">Validează compania via ANAF</li>
         <li data-i18n="f4">Verifică și elimină job-uri expirate</li>
-        <li data-i18n="f5">Salvează în SOLR pentru peviitor.ro</li>
+        <li data-i18n="f5">Publică prin peviitor API pentru peviitor.ro</li>
       </ul>
     </div>
   </div>
@@ -355,8 +355,8 @@ async function loadCompanyConfig() {
     const res = await fetch("./company.json", { cache: "no-cache" });
     if (!res.ok) return;
     const cfg = await res.json();
-    if (cfg.legalName) COMPANY = cfg.legalName;
-    if (cfg.cif) COMPANY_CIF = cfg.cif;
+    if (cfg.company) COMPANY = cfg.company;
+    if (cfg.id) COMPANY_CIF = cfg.id;
   } catch (e) {
     console.warn("company.json not available, using fallback constants");
   }
@@ -373,7 +373,7 @@ const i18n = {
     f2: "Parses with fetch (JSON API)",
     f3: "Validates company via ANAF",
     f4: "Checks and removes expired jobs",
-    f5: "Saves to SOLR for peviitor.ro",
+    f5: "Publishes via peviitor API for peviitor.ro",
     companyTitle: "About the company",
     runBtn: "Run Scraper",
     jobsTitle: "Available jobs",
@@ -392,7 +392,7 @@ const i18n = {
     f2: "Parsează cu fetch (JSON API)",
     f3: "Validează compania via ANAF",
     f4: "Verifică și elimină locuri de muncă expirate",
-    f5: "Salvează în SOLR pentru peviitor.ro",
+    f5: "Publică prin peviitor API pentru peviitor.ro",
     companyTitle: "Despre companie",
     runBtn: "Rulează Scraper",
     jobsTitle: "Locuri de muncă disponibile",

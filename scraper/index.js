@@ -1,24 +1,25 @@
 /**
  * SOBIS SOLUTIONS Job Scraper - Main Entry Point
- * 
+ *
  * PURPOSE: Scrapes job listings from ANOFM (Agentia Nationala pentru Ocuparea
- * Fortei de Munca) for SOBIS SOLUTIONS S.R.L. and stores them in Solr.
- * SOBIS SOLUTIONS has no public careers page — ANOFM API is the primary source.
+ * Fortei de Munca) for SOBIS SOLUTIONS S.R.L. and stores them via the
+ * peviitor API. SOBIS SOLUTIONS has no public careers page — ANOFM API is
+ * the primary source.
  */
 
 import fetch from "node-fetch";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { validateAndGetCompany } from "./company.js";
-import { querySOLR, deleteJobByUrl, upsertJobs, upsertCompany } from "./solr.js";
-import { generateJobsMarkdown } from "./src/markdown-generator.js";
+import { querySOLR, deleteJobByUrl, upsertJobs, upsertCompany } from "./api.js";
+import { generateJobsMarkdown } from "./markdown-generator.js";
 import companyConfig from "./config/company.js";
 
 // ============================================================================
-// CONFIGURATION CONSTANTS — derived from config/company.json
+// CONFIGURATION CONSTANTS — derived from scraper/config/company.json
 // ============================================================================
 
-const COMPANY_CIF = companyConfig.cif;
+const COMPANY_CIF = companyConfig.id;
 
 // Request timeout in milliseconds (10 seconds, per INSTRUCTIONS.md)
 const TIMEOUT = 10000;
@@ -64,7 +65,7 @@ async function searchANOFM(cif, testOnlyOnePage = false) {
       };
       const res = await fetch("https://mediere.anofm.ro/api/entity/vw_public_job_posting", {
         method: "POST",
-        timeout: TIMEOUT,
+        signal: AbortSignal.timeout(TIMEOUT),
         headers: {
           "Content-Type": "application/json",
           "User-Agent": "job_seeker_ro_spider"
@@ -104,17 +105,17 @@ async function searchANOFM(cif, testOnlyOnePage = false) {
 }
 
 // ============================================================================
-// DATA TRANSFORMATION - Preparing jobs for Solr storage
+// DATA TRANSFORMATION - Preparing jobs for the peviitor API
 // ============================================================================
 
 /**
- * Maps raw job data to Solr-compatible job model with timestamps and status
+ * Maps raw job data to the Solr-compatible job model with timestamps and status
  * @param {Object} rawJob - Job object from scraper
  * @param {string} cif - Company identifier
  * @param {string} companyName - Company name
- * @returns {Object} - Job object ready for Solr storage
+ * @returns {Object} - Job object ready for the peviitor API
  */
-function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME || companyConfig.legalName) {
+function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME) {
   const now = new Date().toISOString();
 
   const job = {
@@ -136,9 +137,9 @@ function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME || companyConfig.
 }
 
 /**
- * Transforms jobs to match Solr schema and filters for Romanian locations
+ * Transforms jobs to match the Solr schema and filters for Romanian locations
  * @param {Object} payload - Job payload with jobs array
- * @returns {Object} - Transformed payload ready for Solr
+ * @returns {Object} - Transformed payload ready for the peviitor API
  */
 function transformJobsForSOLR(payload) {
   // List of Romanian cities for location validation
@@ -193,24 +194,26 @@ function transformJobsForSOLR(payload) {
 
 /**
  * Main function that orchestrates the complete scraping workflow:
- * 1. Check existing jobs in Solr
+ * 1. Check existing jobs via the peviitor API
  * 2. Validate company via ANAF
  * 3. Scrape jobs from ANOFM API
- * 4. Transform data for Solr
- * 5. Upsert jobs to Solr
- * 6. Report summary
+ * 4. Transform data
+ * 5. Upsert jobs via the peviitor API
+ * 6. Delete stale jobs no longer published on ANOFM
+ * 7. Report summary
  */
 async function main() {
   const testOnlyOnePage = process.argv.includes("--test");
 
   try {
-    fs.mkdirSync("tmp", { recursive: true });
+    fs.mkdirSync("scraper", { recursive: true });
 
-    // Step 1: Get count of existing jobs in Solr
+    // Step 1: Get count of existing jobs
     console.log("=== Step 1: Get existing jobs count ===");
     const existingResult = await querySOLR(COMPANY_CIF);
     const existingCount = existingResult.numFound;
-    console.log(`Found ${existingCount} existing jobs in SOLR`);
+    const existingUrls = new Set(existingResult.docs.map(doc => doc.url).filter(Boolean));
+    console.log(`Found ${existingCount} existing jobs`);
 
     // Step 2: Validate company data via ANAF
     console.log("=== Step 2: Validate company via ANAF ===");
@@ -224,21 +227,20 @@ async function main() {
       return;
     }
 
-    // Upsert company to SOLR company core
+    // Upsert company to the company core via the peviitor API
     try {
       await upsertCompany({
         id: cif,
         company,
-        group: companyConfig.group,
         brand: companyConfig.brand,
         status: "activ",
-        location: address ? [address] : [companyConfig.defaultLocation],
-        website: [companyConfig.website],
-        lastScraped: new Date().toISOString().split('T')[0],
-        scraperFile: companyConfig.scraperFile
+        location: address ? [address] : companyConfig.location,
+        website: companyConfig.website,
+        career: companyConfig.career,
+        lastScraped: new Date().toISOString().split('T')[0]
       });
     } catch (err) {
-      console.log(`Note: Could not upsert company to SOLR core: ${err.message}`);
+      console.log(`Note: Could not upsert company: ${err.message}`);
     }
 
     // Step 3: Scrape all jobs from ANOFM
@@ -251,7 +253,7 @@ async function main() {
       console.log("⚠️ No jobs found on ANOFM for this company");
     }
 
-    // Step 4: Map raw jobs to Solr model
+    // Step 4: Map raw jobs to the job model
     const jobs = rawJobs.map(job => mapToJobModel(job, localCif));
 
     const payload = {
@@ -263,24 +265,24 @@ async function main() {
     };
 
     // Step 5: Transform jobs (filter locations, normalize values)
-    console.log("Transforming jobs for SOLR...");
+    console.log("Transforming jobs...");
     const transformedPayload = transformJobsForSOLR(payload);
     const validCount = transformedPayload.jobs.filter(j => j.location).length;
     console.log(`📊 Jobs with valid Romanian locations: ${validCount}`);
 
     // Save transformed jobs to file
-    fs.writeFileSync("tmp/jobs.json", JSON.stringify(transformedPayload, null, 2), "utf-8");
-    console.log("Saved tmp/jobs.json");
+    fs.writeFileSync("scraper/jobs.json", JSON.stringify(transformedPayload, null, 2), "utf-8");
+    console.log("Saved scraper/jobs.json");
 
     // Generate and save docs/jobs.md
     const companyData = {
       id: localCif,
       company: transformedPayload.company,
-      group: companyConfig.group,
       brand: companyConfig.brand,
       status: "activ",
-      location: address ? [address] : [companyConfig.defaultLocation],
-      website: [companyConfig.website],
+      location: address ? [address] : companyConfig.location,
+      website: companyConfig.website,
+      career: companyConfig.career,
       lastScraped: new Date().toISOString().split('T')[0]
     };
     const markdown = generateJobsMarkdown(companyData, transformedPayload.jobs);
@@ -289,19 +291,42 @@ async function main() {
     console.log("Saved docs/jobs.md");
 
     // Publish company config for GitHub Pages
-    fs.writeFileSync("docs/company.json", JSON.stringify(companyConfig, null, 2), "utf-8");
-    console.log("Saved docs/company.json");
+    fs.copyFileSync("scraper/config/company.json", "docs/company.json");
+    console.log("Copied scraper/config/company.json → docs/company.json");
 
-    // Step 6: Upsert all jobs to Solr
-    console.log("\n=== Step 6: Upsert jobs to SOLR ===");
+    // Step 6: Upsert all jobs via the peviitor API
+    console.log("\n=== Step 6: Upsert jobs ===");
     await upsertJobs(transformedPayload.jobs);
 
-    // Step 7: Verify final count in Solr
+    // Step 7: Delete stale jobs no longer published on ANOFM
+    const scrapedUrls = new Set(transformedPayload.jobs.map(job => job.url));
+    const staleUrls = [...existingUrls].filter(url => !scrapedUrls.has(url));
+
+    if (staleUrls.length > 0) {
+      console.log(`\n=== Step 7: Delete ${staleUrls.length} stale job(s) ===`);
+      let deletedCount = 0;
+      for (const url of staleUrls) {
+        try {
+          console.log(`  Deleting: ${url}`);
+          await deleteJobByUrl(url);
+          deletedCount++;
+        } catch (delErr) {
+          console.warn(`  ⚠️ Failed to delete: ${url} — ${delErr.message}`);
+        }
+      }
+      console.log(`✅ Deleted ${deletedCount}/${staleUrls.length} stale job(s)`);
+    } else {
+      console.log("\n✅ No stale jobs to delete");
+    }
+
+    // Step 8: Verify final count
+    await new Promise(r => setTimeout(r, 2000));
     const finalResult = await querySOLR(COMPANY_CIF);
     console.log(`\n📊 === SUMMARY ===`);
-    console.log(`📊 Jobs existing in SOLR before scrape: ${existingCount}`);
+    console.log(`📊 Jobs existing before scrape: ${existingCount}`);
     console.log(`📊 Jobs scraped from ANOFM: ${scrapedCount}`);
-    console.log(`📊 Jobs in SOLR after scrape: ${finalResult.numFound}`);
+    console.log(`📊 Stale jobs attempted: ${staleUrls.length}`);
+    console.log(`📊 Jobs after scrape: ${finalResult.numFound}`);
     console.log(`====================`);
 
     console.log("\n=== DONE ===");

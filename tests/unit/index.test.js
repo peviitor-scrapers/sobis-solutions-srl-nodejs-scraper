@@ -6,11 +6,11 @@ jest.unstable_mockModule('node-fetch', () => ({
   default: mockFetch
 }));
 
-describe('index.js Component Tests', () => {
+describe('scraper/index.js Component Tests', () => {
   let index;
 
   beforeAll(async () => {
-    index = await import('../../index.js');
+    index = await import('../../scraper/index.js');
   });
 
   beforeEach(() => {

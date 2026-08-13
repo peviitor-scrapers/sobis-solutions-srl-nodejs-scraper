@@ -1,27 +1,27 @@
 {
-  "validatedAt": "2026-07-21T15:24:51.854Z",
+  "validatedAt": "2026-08-13T12:22:20.414Z",
   "source": "ANAF",
   "brand": "SOBIS",
   "anaf": {
     "cui": 12018818,
-    "name": "SOBIS SOLUTIONS S.R.L.",
-    "address": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu",
-    "registrationNumber": "J32/2018/2024",
-    "phone": "",
-    "fax": "",
-    "postalCode": "",
-    "caenCode": "6201",
+    "name": "SOBIS SOLUTIONS SRL",
+    "address": "JUD. SIBIU, SAT ARPAŞU DE SUS COM. ARPAŞU DE JOS,  , NR.505",
+    "registrationNumber": "J1999000348322",
+    "phone": "0269230039",
+    "fax": "0269230059",
+    "postalCode": "557016",
+    "caenCode": "150",
     "iban": "",
-    "registrationState": "INREGISTRAT",
-    "registrationDate": "2024-01-01",
-    "fiscalAuthority": "AJFP Sibiu",
+    "registrationState": "INREGISTRAT din data 06.08.1999",
+    "registrationDate": "1999-08-06",
+    "fiscalAuthority": "Administraţia Fiscală pentru Contribuabili Mijlocii - Sibiu",
     "ownershipForm": "PROPR.PRIVATA-CAPITAL PRIVAT AUTOHTON",
     "organizationForm": "PERSOANA JURIDICA",
     "legalForm": "SOCIETATE COMERCIALĂ CU RĂSPUNDERE LIMITATĂ",
     "vatRegistered": true,
     "vatPeriods": [
       {
-        "start": "2024-01-01",
+        "start": "1999-08-06",
         "end": null,
         "yearStart": "",
         "message": ""
@@ -34,14 +34,14 @@
     "inactiveSince": null,
     "reactivatedSince": null,
     "splitVat": false,
-    "eFacturaRegistered": false,
+    "eFacturaRegistered": true,
     "headquartersAddress": {
-      "street": "",
-      "number": "",
-      "locality": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos",
-      "county": "Sibiu",
-      "country": "România",
-      "postalCode": ""
+      "street": " ",
+      "number": "505",
+      "locality": "Sat Arpaşu de Sus Com. Arpaşu de Jos",
+      "county": "SIBIU",
+      "country": "",
+      "postalCode": "557016"
     },
     "fiscalAddress": {
       "street": "",
@@ -52,20 +52,13 @@
       "postalCode": ""
     },
     "administrators": [],
-    "authorizedCaenCodes": [
-      "6201",
-      "6202",
-      "6209",
-      "6311",
-      "6312"
-    ],
-    "onrcStatus": 1048,
+    "authorizedCaenCodes": [],
+    "onrcStatus": 0,
     "onrcStatusLabel": "Funcțiune"
   },
   "peviitor": {
     "id": "52200796",
     "company": "SOBIS AP S.R.L.",
-    "group": "Total Specific Solutions",
     "brand": "SOBIS",
     "status": "activ",
     "location": [
@@ -77,21 +70,16 @@
     "career": [
       "https://sobis-ap.ro/cariere"
     ],
-    "lastScraped": "2026-07-21",
+    "lastScraped": "2026-08-13",
     "scraperFile": "job-seeker-ro-spider.yml",
-    "_version_": 1871337250543894500,
+    "_version_": 1873395322094354400,
     "_root_": "52200796"
   },
   "summary": {
-    "company": "SOBIS SOLUTIONS S.R.L.",
+    "company": "SOBIS SOLUTIONS SRL",
     "cif": "12018818",
     "active": true,
     "inactiveSince": null,
-    "reactivatedSince": null,
-    "address": "Sat Arpaşu de Sus, Comuna Arpaşu de Jos, Sibiu",
-    "registrationNumber": "J32/2018/2024",
-    "caenCode": "6201",
-    "vatRegistered": true,
-    "eFacturaRegistered": false
+    "address": "JUD. SIBIU, SAT ARPAŞU DE SUS COM. ARPAŞU DE JOS,  , NR.505"
   }
 }

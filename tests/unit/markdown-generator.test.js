@@ -1,22 +1,22 @@
-import { generateJobsMarkdown } from "../../src/markdown-generator.js";
+import { generateJobsMarkdown } from "../../scraper/markdown-generator.js";
 
 const baseCompany = {
   id: "12018818",
   company: "SOBIS SOLUTIONS S.R.L.",
   brand: "SOBIS",
-  group: "Total Specific Solutions",
   status: "activ",
   location: ["Sibiu"],
   website: ["https://www.sobis.ro"],
-  lastScraped: "2026-07-21"
+  career: ["https://www.sobis.ro"],
+  lastScraped: "2026-08-13"
 };
 
 const baseJob = {
-  url: "https://mediere.anofm.ro/app/module/mediere/job/1001",
-  title: "Senior Node.js Developer",
-  workmode: "hybrid",
+  url: "https://mediere.anofm.ro/app/module/mediere/job/123",
+  title: "Receptionist Hotel",
+  workmode: "on-site",
   location: ["Sibiu"],
-  tags: ["node.js", "javascript"],
+  tags: ["receptionist", "hotelier"],
   status: "scraped"
 };
 
@@ -47,9 +47,14 @@ describe("generateJobsMarkdown", () => {
       expect(md).toContain("[https://www.sobis.ro](https://www.sobis.ro)");
     });
 
+    it("includes career page as markdown link", () => {
+      const md = generateJobsMarkdown(baseCompany, []);
+      expect(md).toContain("[https://www.sobis.ro](https://www.sobis.ro)");
+    });
+
     it("includes lastScraped date", () => {
       const md = generateJobsMarkdown(baseCompany, []);
-      expect(md).toContain("2026-07-21");
+      expect(md).toContain("2026-08-13");
     });
 
     it("omits optional fields when not present", () => {
@@ -74,17 +79,17 @@ describe("generateJobsMarkdown", () => {
 
     it("includes job title as h3", () => {
       const md = generateJobsMarkdown(baseCompany, [baseJob]);
-      expect(md).toContain("### Senior Node.js Developer");
+      expect(md).toContain("### Receptionist Hotel");
     });
 
     it("includes job URL as markdown link", () => {
       const md = generateJobsMarkdown(baseCompany, [baseJob]);
-      expect(md).toContain("[https://mediere.anofm.ro/app/module/mediere/job/1001]");
+      expect(md).toContain("[https://mediere.anofm.ro/app/module/mediere/job/123]");
     });
 
     it("includes workmode", () => {
       const md = generateJobsMarkdown(baseCompany, [baseJob]);
-      expect(md).toContain("hybrid");
+      expect(md).toContain("on-site");
     });
 
     it("includes location", () => {
@@ -94,7 +99,7 @@ describe("generateJobsMarkdown", () => {
 
     it("includes tags", () => {
       const md = generateJobsMarkdown(baseCompany, [baseJob]);
-      expect(md).toContain("node.js, javascript");
+      expect(md).toContain("receptionist, hotelier");
     });
 
     it("includes status", () => {
@@ -103,10 +108,10 @@ describe("generateJobsMarkdown", () => {
     });
 
     it("renders multiple jobs", () => {
-      const job2 = { ...baseJob, title: "DevOps Engineer", url: "https://mediere.anofm.ro/app/module/mediere/job/1002" };
+      const job2 = { ...baseJob, title: "Maid", url: "https://mediere.anofm.ro/app/module/mediere/job/456" };
       const md = generateJobsMarkdown(baseCompany, [baseJob, job2]);
-      expect(md).toContain("### Senior Node.js Developer");
-      expect(md).toContain("### DevOps Engineer");
+      expect(md).toContain("### Receptionist Hotel");
+      expect(md).toContain("### Maid");
       expect(md).toContain("## Current Job Listings (2)");
     });
 
@@ -129,6 +134,38 @@ describe("generateJobsMarkdown", () => {
     it("includes a generated timestamp", () => {
       const md = generateJobsMarkdown(baseCompany, []);
       expect(md).toMatch(/_Generated: \d{4}-\d{2}-\d{2}/);
+    });
+  });
+
+  describe("markdown escaping", () => {
+    it("escapes # in job titles", () => {
+      const job = { ...baseJob, title: "C# Developer" };
+      const md = generateJobsMarkdown(baseCompany, [job]);
+      expect(md).toContain("### C\\# Developer");
+    });
+
+    it("escapes * in job titles", () => {
+      const job = { ...baseJob, title: "Full-Stack * Developer" };
+      const md = generateJobsMarkdown(baseCompany, [job]);
+      expect(md).toContain("### Full-Stack \\* Developer");
+    });
+
+    it("escapes [ ] in company name", () => {
+      const company = { ...baseCompany, company: "ACME [Tech] SRL" };
+      const md = generateJobsMarkdown(company, []);
+      expect(md).toContain("# ACME \\[Tech\\] SRL");
+    });
+
+    it("escapes ` in tags", () => {
+      const job = { ...baseJob, tags: ["node.js", "`bash`"] };
+      const md = generateJobsMarkdown(baseCompany, [job]);
+      expect(md).toContain("\\`bash\\`");
+    });
+
+    it("escapes # in location", () => {
+      const job = { ...baseJob, location: ["Building #5"] };
+      const md = generateJobsMarkdown(baseCompany, [job]);
+      expect(md).toContain("Building \\#5");
     });
   });
 });
