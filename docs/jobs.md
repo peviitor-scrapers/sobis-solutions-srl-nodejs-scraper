@@ -10,11 +10,11 @@
 | Location | JUD. SIBIU, SAT ARPAŞU DE SUS COM. ARPAŞU DE JOS,  , NR.505 |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
 | Careers | [https://www.sobis.ro](https://www.sobis.ro) |
-| Last Scraped | 2026-09-26 |
+| Last Scraped | 2026-09-27 |
 
 ## Current Job Listings (9)
 
-_Generated: 2026-09-26T10:20:11.557Z_
+_Generated: 2026-09-27T10:52:32.851Z_
 
 ### RECEPTIONER DE HOTEL
 
