@@ -10,11 +10,11 @@
 | Location | JUD. SIBIU, SAT ARPAŞU DE SUS COM. ARPAŞU DE JOS,  , NR.505 |
 | Website | [https://www.sobis.ro](https://www.sobis.ro) |
 | Careers | [https://www.sobis.ro](https://www.sobis.ro) |
-| Last Scraped | 2026-11-09 |
+| Last Scraped | 2026-11-10 |
 
 ## Current Job Listings (11)
 
-_Generated: 2026-11-09T14:25:35.764Z_
+_Generated: 2026-11-10T13:48:53.433Z_
 
 ### LUCRATOR BUCATARIE (SPALATOR VASE MARI)
 
